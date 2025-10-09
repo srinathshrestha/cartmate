@@ -75,6 +75,7 @@ export async function PATCH(request) {
         username: true,
         email: true,
         avatarUrl: true,
+          isEmailVerified: true,
         createdAt: true,
         updatedAt: true,
       },

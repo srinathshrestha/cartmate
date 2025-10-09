@@ -18,11 +18,22 @@ import { useUploadThing } from "@/lib/uploadthing";
  */
 export default function AvatarUpload({ user, onUpdate }) {
     const [isUploading, setIsUploading] = useState(false);
-    const { startUpload } = useUploadThing("avatarUploader");
+    const { startUpload } = useUploadThing("avatarUploader", {
+        onClientUploadComplete: (res) => {
+            console.log("AvatarUpload: Client upload complete callback", res);
+        },
+        onUploadError: (error) => {
+            console.error("AvatarUpload: Upload error callback", error);
+        },
+        onUploadBegin: (fileName) => {
+            console.log("AvatarUpload: Upload beginning for", fileName);
+        },
+    });
 
     // Handle avatar upload
     const handleAvatarUpload = async (e) => {
         const file = e.target.files?.[0];
+        console.log("AvatarUpload: File selected", file?.name, file?.size);
         if (!file) return;
 
         // Validate file size (1MB)
@@ -38,16 +49,23 @@ export default function AvatarUpload({ user, onUpdate }) {
         }
 
         setIsUploading(true);
+        console.log("AvatarUpload: Starting upload...");
+
         try {
+            console.log("AvatarUpload: Calling startUpload with file:", file.name);
             const uploadResult = await startUpload([file]);
+            console.log("AvatarUpload: Upload result:", uploadResult);
 
             if (!uploadResult || uploadResult.length === 0) {
-                throw new Error("Upload failed");
+                console.error("AvatarUpload: No upload result received");
+                throw new Error("Upload failed - no result");
             }
 
             const uploadedUrl = uploadResult[0].url;
+            console.log("AvatarUpload: File uploaded to URL:", uploadedUrl);
 
             // Update user profile with new avatar URL
+            console.log("AvatarUpload: Updating profile with new avatar URL");
             const response = await fetch("/api/profile", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
@@ -55,15 +73,19 @@ export default function AvatarUpload({ user, onUpdate }) {
             });
 
             if (!response.ok) {
+                console.error("AvatarUpload: Profile update failed:", response.status);
                 throw new Error("Failed to update profile");
             }
 
             const data = await response.json();
+            console.log("AvatarUpload: Profile updated successfully");
             onUpdate(data.user);
             toast.success("Avatar uploaded successfully!");
         } catch (error) {
-            console.error("Avatar upload error:", error);
-            toast.error("Failed to upload avatar");
+            console.error("AvatarUpload: Error details:", error);
+            console.error("AvatarUpload: Error message:", error.message);
+            console.error("AvatarUpload: Error stack:", error.stack);
+            toast.error(`Failed to upload avatar: ${error.message}`);
         } finally {
             setIsUploading(false);
         }

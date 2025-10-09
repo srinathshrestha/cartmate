@@ -19,6 +19,7 @@ const publicApiRoutes = [
   "/api/auth/register",
   "/api/auth/login",
   "/api/auth/logout",
+    "/api/uploadthing", // UploadThing webhook endpoint - must be public for callbacks
 ];
 
 /**
@@ -33,7 +34,7 @@ function isPublicPath(pathname) {
   }
 
   // Check if path starts with public API routes
-  if (pathname.startsWith("/api/auth/")) {
+    if (pathname.startsWith("/api/auth/") || pathname.startsWith("/api/uploadthing")) {
     return publicApiRoutes.some((route) => pathname.startsWith(route));
   }
 

@@ -73,32 +73,32 @@ export default function LandingPage() {
   const features = [
     {
       icon: ShoppingCart,
-      title: "Collaborative Lists",
-      description: "Create and share shopping lists with family and friends in real-time.",
+      title: "Shared Lists",
+      description: "Create and share shopping lists with your family and friends in real-time.",
     },
     {
       icon: Users,
-      title: "Team Management",
-      description: "Assign roles, manage members, and control who can edit your lists.",
+      title: "Household Members",
+      description: "Add your family members, roommates, or friends — everyone has a say in what goes on the list.",
     },
     {
       icon: MessageCircle,
-      title: "Built-in Chat",
-      description: "Discuss items, mention team members, and coordinate shopping together.",
+      title: "Chat with your roomies & family",
+      description: "Discuss items, coordinate shopping trips, and chat about what everyone needs.",
     },
     {
       icon: Zap,
-      title: "Real-time Sync",
-      description: "See updates instantly as team members add, check off, or edit items.",
+      title: "Everyone has a say",
+      description: "See updates instantly as family members add, check off, or edit items together.",
     },
   ];
 
   const benefits = [
-    "Never forget items again",
-    "Reduce duplicate purchases",
-    "Coordinate with your team",
-    "Shop more efficiently",
-    "Save time and money",
+    "Never forget milk again",
+    "No more 3 cartons of milk",
+    "Stop fighting over who bought what",
+    "Shop smarter together",
+    "Save time and reduce stress",
   ];
 
   return (
@@ -143,33 +143,34 @@ export default function LandingPage() {
         >
           <motion.div variants={itemVariants} className="mb-6">
             <span className="inline-block px-4 py-1.5 mb-6 text-sm font-medium bg-primary/10 text-primary rounded-full">
-              Real-time Collaboration
+              Family & Friends Shopping
             </span>
           </motion.div>
 
           <motion.h1
             variants={itemVariants}
-            className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent"
+            className="text-5xl md:text-7xl font-bold tracking-tight mb-6 gradient-text"
           >
-            Shopping Lists,
+            Family Shopping,
             <br />
-            <span className="text-primary">Reimagined</span>
+            <span className="text-primary drop-shadow-lg">Made Fun Again</span>
           </motion.h1>
 
           <motion.p
             variants={itemVariants}
             className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed"
           >
-            Collaborate with your team in real-time. Add items, chat, and coordinate
-            shopping effortlessly—all in one place.
+            Whether you live with family, friends, or roomies — keep everyone in sync.
+            <br />
+            One list, one chat, zero duplicate groceries.
           </motion.p>
 
           <motion.div
             variants={itemVariants}
             className="flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
-            <Button size="lg" onClick={() => router.push("/register")} className="text-lg px-8">
-              Start for Free
+            <Button size="lg" onClick={() => router.push("/register")} className="text-lg px-8 glossy-button">
+              Start Shopping Together
             </Button>
             <Button
               size="lg"
@@ -221,6 +222,16 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
+      {/* Floating Emojis Background */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 floating-emoji text-6xl">🍎</div>
+        <div className="absolute top-1/3 right-1/4 floating-emoji text-5xl animation-delay-1000">🥛</div>
+        <div className="absolute bottom-1/3 left-1/3 floating-emoji text-4xl animation-delay-2000">🥖</div>
+        <div className="absolute bottom-1/4 right-1/3 floating-emoji text-5xl animation-delay-3000">☕</div>
+        <div className="absolute top-1/2 left-1/5 floating-emoji text-4xl animation-delay-4000">🍞</div>
+        <div className="absolute top-2/3 right-1/5 floating-emoji text-6xl animation-delay-5000">🥚</div>
+      </div>
+
       {/* Features Section */}
       <section className="container mx-auto px-4 py-20 border-t border-border/40">
         <motion.div
@@ -231,10 +242,10 @@ export default function LandingPage() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Everything You Need
+            Everything Your Household Needs
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Powerful features designed for modern collaborative shopping
+            Powerful features designed for families and friends shopping together
           </p>
         </motion.div>
 
@@ -247,7 +258,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
               transition={{ delay: index * 0.1, duration: 0.5 }}
               whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-shadow"
+              className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-shadow glow-card"
             >
               <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                 <feature.icon className="h-6 w-6 text-primary" />
@@ -269,7 +280,7 @@ export default function LandingPage() {
             className="text-center mb-12"
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Why Teams Choose Cartmate
+              Why Families Choose Cartmate
             </h2>
           </motion.div>
 
@@ -322,7 +333,7 @@ export default function LandingPage() {
       <footer className="border-t border-border/40 py-8">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
           <p className="font-mono text-sm">
-            &copy; 2025 Cartmate. Built for teams who shop together.
+            &copy; 2025 Cartmate. Built for families & friends who live (and shop) together.
           </p>
         </div>
       </footer>
