@@ -9,6 +9,14 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -23,6 +31,8 @@ export default function InviteManagement({ listId, invites, setInvites }) {
         expiresInHours: 24,
         maxUses: null,
     });
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [inviteToDelete, setInviteToDelete] = useState(null);
 
     // Create invite
     const handleCreateInvite = async (e) => {
@@ -96,12 +106,18 @@ export default function InviteManagement({ listId, invites, setInvites }) {
         }
     };
 
-    // Delete invite
-    const handleDeleteInvite = async (inviteId) => {
-        if (!confirm("Delete this invite link permanently?")) return;
+    // Delete invite - opens confirmation dialog
+    const handleDeleteInvite = (inviteId) => {
+        setInviteToDelete(inviteId);
+        setDeleteConfirmOpen(true);
+    };
+
+    // Confirm delete invite
+    const confirmDeleteInvite = async () => {
+        if (!inviteToDelete) return;
 
         try {
-            const response = await fetch(`/api/lists/${listId}/invites/${inviteId}`, {
+            const response = await fetch(`/api/lists/${listId}/invites/${inviteToDelete}`, {
                 method: "DELETE",
             });
 
@@ -111,11 +127,14 @@ export default function InviteManagement({ listId, invites, setInvites }) {
             }
 
             // Remove from local state
-            setInvites(invites.filter((inv) => inv.id !== inviteId));
+            setInvites(invites.filter((inv) => inv.id !== inviteToDelete));
             toast.success("Invite link deleted");
         } catch (error) {
             console.error("Delete invite error:", error);
             toast.error("An error occurred");
+        } finally {
+            setDeleteConfirmOpen(false);
+            setInviteToDelete(null);
         }
     };
 
@@ -303,6 +322,35 @@ export default function InviteManagement({ listId, invites, setInvites }) {
                     </form>
                 </CardContent>
             </Card>
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Invite Link</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this invite link permanently?
+                            This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setDeleteConfirmOpen(false);
+                                setInviteToDelete(null);
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDeleteInvite}
+                        >
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
