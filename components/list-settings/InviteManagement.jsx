@@ -1,4 +1,4 @@
-import { Clock, Copy, Link2, Plus, UserCheck, XCircle } from "lucide-react";
+import { Clock, Copy, Link2, Plus, Trash2, UserCheck, XCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -187,7 +187,7 @@ export default function InviteManagement({ listId, invites, setInvites }) {
                                                 <p>
                                                     Expires: {new Date(invite.expiresAt).toLocaleString()}
                                                 </p>
-                                                <p>Created by: {invite.createdBy.username}</p>
+                                                <p>Created by: {invite.createdBy?.username || 'Unknown'}</p>
                                             </div>
                                         </div>
 
