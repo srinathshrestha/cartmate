@@ -1,0 +1,303 @@
+"use client";
+
+import { LogOut, PlusCircle, ShoppingCart, Users } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import ThemeToggle from "@/components/ThemeToggle";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+/**
+ * Dashboard page component.
+ * Displays all lists for the current user (created + joined).
+ * Allows creating new lists and accessing existing ones.
+ */
+export default function DashboardPage() {
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [lists, setLists] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Create list dialog state
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newListName, setNewListName] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Fetch user and lists on mount
+  useEffect(() => {
+    fetchUserAndLists();
+  }, []);
+
+  const fetchUserAndLists = async () => {
+    try {
+      // Fetch current user
+      const userRes = await fetch("/api/auth/me");
+      if (!userRes.ok) {
+        router.push("/login");
+        return;
+      }
+      const userData = await userRes.json();
+      setUser(userData.user);
+
+      // Fetch lists
+      const listsRes = await fetch("/api/lists");
+      if (listsRes.ok) {
+        const listsData = await listsRes.json();
+        setLists(listsData.lists);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error("Failed to load data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      toast.success("Logged out successfully");
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout");
+    }
+  };
+
+  // Handle create new list
+  const handleCreateList = async (e) => {
+    e.preventDefault();
+    if (!newListName.trim()) return;
+
+    setIsCreating(true);
+    try {
+      const response = await fetch("/api/lists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newListName.trim() }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        toast.error(data.error || "Failed to create list");
+        return;
+      }
+
+      const data = await response.json();
+      toast.success("List created successfully!");
+
+      // Close dialog and reset form
+      setIsCreateDialogOpen(false);
+      setNewListName("");
+
+      // Redirect to new list
+      router.push(`/lists/${data.list.id}`);
+    } catch (error) {
+      console.error("Create list error:", error);
+      toast.error("An error occurred");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // Format date for display
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+              <h1 className="text-lg sm:text-2xl font-bold truncate">
+                Cartmate
+              </h1>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+              {user && (
+                <>
+                  <Link href="/profile">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hidden sm:inline-flex"
+                    >
+                      {user.username}
+                    </Button>
+                    <Button variant="ghost" size="icon" className="sm:hidden">
+                      <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-sm font-medium">
+                          {user.username[0].toUpperCase()}
+                        </span>
+                      </div>
+                    </Button>
+                  </Link>
+                  <ThemeToggle />
+                  <Button variant="ghost" size="icon" onClick={handleLogout}>
+                    <LogOut className="h-5 w-5" />
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="container mx-auto px-4 py-6 sm:py-8">
+        {/* Page header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold">My Lists</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage your shopping lists and collaborate
+            </p>
+          </div>
+          <Button
+            onClick={() => setIsCreateDialogOpen(true)}
+            className="w-full sm:w-auto"
+          >
+            <PlusCircle className="h-5 w-5 mr-2" />
+            Create New List
+          </Button>
+        </div>
+
+        {/* Lists grid */}
+        {lists.length === 0
+          ? <Card className="p-8 sm:p-12 text-center">
+              <CardContent>
+                <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No lists yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create your first shopping list to get started
+                </p>
+                <Button onClick={() => setIsCreateDialogOpen(true)}>
+                  <PlusCircle className="h-5 w-5 mr-2" />
+                  Create List
+                </Button>
+              </CardContent>
+            </Card>
+          : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {lists.map((list) => (
+                <Link key={list.id} href={`/lists/${list.id}`}>
+                  <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
+                    <CardHeader>
+                      <CardTitle className="line-clamp-1">
+                        {list.name}
+                      </CardTitle>
+                      <CardDescription className="truncate">
+                        Created by {list.creator.username}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          <span>
+                            {list.memberCount}{" "}
+                            {list.memberCount === 1 ? "member" : "members"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <ShoppingCart className="h-4 w-4" />
+                          <span>
+                            {list.itemCount || 0}{" "}
+                            {list.itemCount === 1 ? "item" : "items"}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <p className="text-xs text-muted-foreground">
+                        Last updated {formatDate(list.updatedAt)}
+                      </p>
+                    </CardFooter>
+                  </Card>
+                </Link>
+              ))}
+            </div>}
+      </main>
+
+      {/* Create List Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleCreateList}>
+            <DialogHeader>
+              <DialogTitle>Create New List</DialogTitle>
+              <DialogDescription>
+                Give your shopping list a name to get started
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="listName">List Name</Label>
+              <Input
+                id="listName"
+                placeholder="e.g., Weekly Groceries"
+                value={newListName}
+                onChange={(e) => setNewListName(e.target.value)}
+                className="mt-2"
+                autoFocus
+                required
+              />
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsCreateDialogOpen(false);
+                  setNewListName("");
+                }}
+                disabled={isCreating}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isCreating || !newListName.trim()}
+              >
+                {isCreating ? "Creating..." : "Create List"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

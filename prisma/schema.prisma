@@ -1,0 +1,171 @@
+// Cartmate Database Schema
+// Defines all models for users, lists, items, messages, and invites.
+// Uses Neon DB (PostgreSQL) with Prisma ORM.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Member roles define permission levels for list access.
+// CREATOR can manage members and delete the list.
+// EDITOR can add/edit/delete items and send messages.
+// VIEWER can only view items and messages (read-only).
+enum MemberRole {
+  CREATOR
+  EDITOR
+  VIEWER
+}
+
+// User model stores authentication and profile data.
+model User {
+  id              String       @id @default(cuid())
+  username        String       @unique
+  email           String       @unique
+  passwordHash    String       @map("password_hash")
+  avatarUrl       String?      @map("avatar_url")
+  isEmailVerified Boolean      @default(false) @map("is_email_verified")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  
+  // Relations
+  lists        List[]       @relation("ListCreator")
+  memberships  ListMember[]
+  items        Item[]       @relation("ItemCreator")
+  messages     Message[]    @relation("MessageSender")
+  invites      Invite[]     @relation("InviteCreator")
+  otpCodes     OtpCode[]
+
+  @@map("users")
+}
+
+// List represents a collaborative shopping list.
+model List {
+  id        String       @id @default(cuid())
+  name      String
+  creatorId String       @map("creator_id")
+  memberCap Int?         @map("member_cap") // Maximum number of members allowed (null = unlimited)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  
+  // Relations
+  creator   User         @relation("ListCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  members   ListMember[]
+  items     Item[]
+  messages  Message[]
+  invites   Invite[]
+
+  @@index([creatorId])
+  @@map("lists")
+}
+
+// ListMember tracks who has access to each list and their role.
+// Ensures each user can only be a member once per list.
+model ListMember {
+  id       String     @id @default(cuid())
+  listId   String     @map("list_id")
+  userId   String     @map("user_id")
+  role     MemberRole
+  joinedAt DateTime   @default(now()) @map("joined_at")
+  
+  // Relations
+  list     List       @relation(fields: [listId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, userId])
+  @@index([userId])
+  @@map("list_members")
+}
+
+// Item represents a single shopping list item.
+// Tracks who created it and when it was last updated.
+model Item {
+  id          String   @id @default(cuid())
+  listId      String   @map("list_id")
+  name        String
+  quantity    String   @default("1")
+  notes       String?
+  done        Boolean  @default(false)
+  createdById String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  list        List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation("ItemCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+  @@index([updatedAt])
+  @@map("items")
+}
+
+// Message stores chat messages within a list.
+// Supports mentions of users and items.
+model Message {
+  id            String   @id @default(cuid())
+  listId        String   @map("list_id")
+  senderId      String   @map("sender_id")
+  text          String
+  mentionsUsers String[] @default([]) @map("mentions_users")
+  mentionsItems String[] @default([]) @map("mentions_items")
+  createdAt     DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  list          List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  sender        User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+// Invite generates shareable tokens for joining lists.
+// Tokens expire after a set time for security.
+// Supports member caps for first-come-first-serve joins.
+model Invite {
+  id            String   @id @default(cuid())
+  listId        String   @map("list_id")
+  token         String   @unique @default(uuid())
+  expiresAt     DateTime @map("expires_at")
+  maxUses       Int?     @map("max_uses") // Maximum number of times this invite can be used (null = unlimited)
+  usedCount     Int      @default(0) @map("used_count") // Number of times this invite has been used
+  isActive      Boolean  @default(true) @map("is_active") // Can be manually deactivated by creator
+  createdAt     DateTime @default(now()) @map("created_at")
+  createdById   String   @map("created_by")
+  
+  // Relations
+  list          List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  createdBy     User     @relation("InviteCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@map("invites")
+}
+
+// OTP Code for email verification.
+// Stores temporary 6-digit codes for email verification.
+model OtpCode {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  email     String
+  code      String   // 6-digit OTP
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([email])
+  @@index([code])
+  @@index([expiresAt])
+  @@map("otp_codes")
+}
