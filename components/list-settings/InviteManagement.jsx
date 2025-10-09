@@ -332,8 +332,8 @@ export default function InviteManagement({ listId, invites, setInvites }) {
                             This action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        <Button
+                    <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                        <Button 
                             variant="outline"
                             onClick={() => {
                                 setDeleteConfirmOpen(false);
