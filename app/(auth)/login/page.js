@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,15 +16,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-/**
- * Login page component.
- * Allows users to authenticate with email and password.
- * Issues JWT token on successful login.
- */
-export default function LoginPage() {
+// Component that uses useSearchParams - needs to be wrapped in Suspense
+function LoginForm() {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const redirect = searchParams.get("redirect"); // Get redirect URL if present
+    const [searchParams] = useState(() => {
+        // This will only run on the client side
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get("redirect");
+        }
+        return null;
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         email: "",
@@ -63,7 +65,7 @@ export default function LoginPage() {
 
             // Success - redirect to original destination or dashboard
             toast.success("Login successful!");
-            router.push(redirect || "/dashboard");
+            router.push(searchParams || "/dashboard");
         } catch (error) {
             console.error("Login error:", error);
             toast.error("An error occurred during login");
@@ -133,8 +135,8 @@ export default function LoginPage() {
                             Don't have an account?{" "}
                             <Link
                                 href={
-                                    redirect
-                                        ? `/register?redirect=${encodeURIComponent(redirect)}`
+                                    searchParams
+                                        ? `/register?redirect=${encodeURIComponent(searchParams)}`
                                         : "/register"
                                 }
                                 className="text-primary hover:underline font-medium"
@@ -146,5 +148,36 @@ export default function LoginPage() {
                 </form>
             </Card>
         </div>
+    );
+}
+
+// Main component that wraps LoginForm in Suspense to handle useSearchParams
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-background p-4">
+                <Card className="w-full max-w-md">
+                    <CardHeader className="space-y-1">
+                        <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+                        <CardDescription>
+                            Sign in to your Cartmate account to continue
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <div className="h-10 bg-muted animate-pulse rounded"></div>
+                        </div>
+                        <div className="space-y-2">
+                            <div className="h-10 bg-muted animate-pulse rounded"></div>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex flex-col space-y-4">
+                        <div className="h-10 bg-muted animate-pulse rounded w-full"></div>
+                    </CardFooter>
+                </Card>
+            </div>
+        }>
+            <LoginForm />
+        </Suspense>
     );
 }
