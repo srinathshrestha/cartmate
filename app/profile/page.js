@@ -29,11 +29,31 @@ export default function ProfilePage() {
     const router = useRouter();
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isUploadBlocked, setIsUploadBlocked] = useState(false);
 
     // Fetch user data on mount
     useEffect(() => {
         fetchUser();
     }, []);
+
+    // Prevent navigation during upload
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (isUploadBlocked) {
+                e.preventDefault();
+                e.returnValue = "Upload in progress. Are you sure you want to leave?";
+                return e.returnValue;
+            }
+        };
+
+        if (isUploadBlocked) {
+            window.addEventListener("beforeunload", handleBeforeUnload);
+        }
+
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+        };
+    }, [isUploadBlocked]);
 
     const fetchUser = async () => {
         try {
@@ -57,6 +77,11 @@ export default function ProfilePage() {
         setUser(updatedUser);
     };
 
+    // Handle upload state from AvatarUpload component
+    const handleUploadStateChange = (blocked) => {
+        setIsUploadBlocked(blocked);
+    };
+
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
@@ -72,36 +97,51 @@ export default function ProfilePage() {
                 <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 sm:gap-3">
                         <Link href="/dashboard">
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" disabled={isUploadBlocked}>
                                 <ArrowLeft className="h-5 w-5" />
                             </Button>
                         </Link>
                         <h1 className="text-lg sm:text-2xl font-bold">Profile Settings</h1>
+                        {isUploadBlocked && (
+                            <div className="flex items-center gap-2 text-orange-600">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600"></div>
+                                <span className="text-sm">Upload in progress...</span>
+                            </div>
+                        )}
                     </div>
                     <ThemeToggle />
                 </div>
             </header>
 
             {/* Main content */}
-            <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-2xl">
+            <main className={`container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-2xl ${isUploadBlocked ? 'pointer-events-none opacity-50' : ''}`}>
                 <div className="space-y-6">
                     {/* Email Verification Alert */}
                     <EmailVerification user={user} onUpdate={handleUserUpdate} />
 
                     {/* Avatar Upload */}
-                    <AvatarUpload user={user} onUpdate={handleUserUpdate} />
+                    <AvatarUpload
+                        user={user}
+                        onUpdate={handleUserUpdate}
+                        onUploadStateChange={handleUploadStateChange}
+                        disabled={isUploadBlocked}
+                    />
 
                     {/* Profile Information */}
-                    <ProfileForm user={user} onUpdate={handleUserUpdate} />
+                    <ProfileForm
+                        user={user}
+                        onUpdate={handleUserUpdate}
+                        disabled={isUploadBlocked}
+                    />
 
                     {/* Change Password */}
-                    <PasswordChange />
+                    <PasswordChange disabled={isUploadBlocked} />
 
                     {/* Delete Account */}
-                    <DeleteAccount />
+                    <DeleteAccount disabled={isUploadBlocked} />
 
                     {/* Account Information */}
-                    <AccountInfo user={user} />
+                    <AccountInfo user={user} disabled={isUploadBlocked} />
                 </div>
             </main>
         </div>

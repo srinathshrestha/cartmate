@@ -54,10 +54,35 @@ export async function GET(request, { params }) {
               select: {
                 id: true,
                 username: true,
+                avatarUrl: true,
+              },
+            },
+            assignedTo: {
+              select: {
+                id: true,
+                username: true,
+                avatarUrl: true,
+              },
+            },
+            purchasedBy: {
+              select: {
+                id: true,
+                username: true,
+                avatarUrl: true,
+              },
+            },
+            _count: {
+              select: {
+                subItems: true,
+                attachments: true,
               },
             },
           },
-          orderBy: [{ done: "asc" }, { createdAt: "desc" }],
+          orderBy: [
+            { status: "asc" },
+            { priority: "desc" },
+            { createdAt: "desc" },
+          ],
         },
         messages: {
           include: {

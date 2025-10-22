@@ -24,6 +24,8 @@ export async function GET() {
         email: true,
         avatarUrl: true,
         isEmailVerified: true,
+        pendingEmail: true,
+        emailVerificationSentAt: true,
         createdAt: true,
         updatedAt: true,
       },

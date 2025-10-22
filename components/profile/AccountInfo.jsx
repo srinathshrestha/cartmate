@@ -33,6 +33,11 @@ export default function AccountInfo({ user }) {
                                 <CheckCircle className="h-4 w-4 text-green-600" />
                                 Verified
                             </>
+                        ) : user?.pendingEmail ? (
+                            <>
+                                <AlertCircle className="h-4 w-4 text-orange-600" />
+                                Verification Pending
+                            </>
                         ) : (
                             <>
                                 <AlertCircle className="h-4 w-4 text-orange-600" />
@@ -41,6 +46,14 @@ export default function AccountInfo({ user }) {
                         )}
                     </span>
                 </div>
+                {user?.pendingEmail && (
+                    <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Pending Email</span>
+                        <span className="font-medium text-orange-600">
+                            {user.pendingEmail}
+                        </span>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

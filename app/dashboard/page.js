@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, PlusCircle, ShoppingCart, Users } from "lucide-react";
+import { LogOut, PlusCircle, ShoppingCart, Users, AlertCircle, CheckCircle, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -25,6 +25,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import EmailVerification from "@/components/profile/EmailVerification";
 
 /**
  * Dashboard page component.
@@ -87,6 +96,13 @@ export default function DashboardPage() {
   // Handle create new list
   const handleCreateList = async (e) => {
     e.preventDefault();
+
+    // Check if user is verified
+    if (!user?.isEmailVerified) {
+      toast.error("Please verify your email before creating lists");
+      return;
+    }
+
     if (!newListName.trim()) return;
 
     setIsCreating(true);
@@ -118,6 +134,11 @@ export default function DashboardPage() {
     } finally {
       setIsCreating(false);
     }
+  };
+
+  // Handle user update from verification
+  const handleUserUpdate = (updatedUser) => {
+    setUser(updatedUser);
   };
 
   // Format date for display
@@ -152,26 +173,52 @@ export default function DashboardPage() {
             <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
               {user && (
                 <>
-                  <Link href="/profile">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="hidden sm:inline-flex"
-                    >
-                      {user.username}
-                    </Button>
-                    <Button variant="ghost" size="icon" className="sm:hidden">
-                      <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-medium">
-                          {user.username[0].toUpperCase()}
-                        </span>
-                      </div>
-                    </Button>
-                  </Link>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="relative">
+                        {user.avatarUrl ? (
+                          <img
+                            src={user.avatarUrl}
+                            alt={user.username}
+                            className="h-8 w-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-sm font-medium">
+                              {user.username[0].toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        {!user.isEmailVerified && (
+                          <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-orange-500 flex items-center justify-center">
+                            <div className="h-1 w-1 rounded-full bg-white"></div>
+                          </div>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel className="flex flex-col">
+                        <span className="font-medium">{user.username}</span>
+                        <span className="text-xs text-muted-foreground">{user.email}</span>
+                        {!user.isEmailVerified && (
+                          <span className="text-xs text-orange-600 mt-1">⚠️ Email not verified</span>
+                        )}
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/profile" className="flex items-center">
+                          <User className="h-4 w-4 mr-2" />
+                          Profile Settings
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Logout
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <ThemeToggle />
-                  <Button variant="ghost" size="icon" onClick={handleLogout}>
-                    <LogOut className="h-5 w-5" />
-                  </Button>
                 </>
               )}
             </div>
@@ -181,6 +228,25 @@ export default function DashboardPage() {
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-6 sm:py-8">
+        {/* Email Verification Banner */}
+        {user && !user.isEmailVerified && (
+          <Card className="mb-6 border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-orange-900 dark:text-orange-100">
+                    Email Not Verified
+                  </h3>
+                  <p className="text-sm text-orange-800 dark:text-orange-200 mt-1">
+                    Please verify your email address to create lists and access all features.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
@@ -190,11 +256,18 @@ export default function DashboardPage() {
             </p>
           </div>
           <Button
-            onClick={() => setIsCreateDialogOpen(true)}
+            onClick={() => {
+              if (!user?.isEmailVerified) {
+                toast.error("Please verify your email before creating lists");
+                return;
+              }
+              setIsCreateDialogOpen(true);
+            }}
             className="w-full sm:w-auto"
+            disabled={!user?.isEmailVerified}
           >
             <PlusCircle className="h-5 w-5 mr-2" />
-            Create New List
+            {user?.isEmailVerified ? "Create New List" : "Verify Email First"}
           </Button>
         </div>
 
@@ -203,13 +276,27 @@ export default function DashboardPage() {
           ? <Card className="p-8 sm:p-12 text-center">
               <CardContent>
                 <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No lists yet</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {user?.isEmailVerified ? "No lists yet" : "Welcome to Cartmate!"}
+              </h3>
                 <p className="text-muted-foreground mb-4">
-                  Create your first shopping list to get started
+                {user?.isEmailVerified
+                  ? "Create your first shopping list to get started"
+                  : "Please verify your email address to start creating shopping lists and collaborating with others."
+                }
                 </p>
-                <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Button
+                onClick={() => {
+                  if (!user?.isEmailVerified) {
+                    return;
+                  } else {
+                    setIsCreateDialogOpen(true);
+                  }
+                }}
+                disabled={!user?.isEmailVerified}
+              >
                   <PlusCircle className="h-5 w-5 mr-2" />
-                  Create List
+                {user?.isEmailVerified ? "Create List" : "Verify Email First"}
                 </Button>
               </CardContent>
             </Card>
@@ -298,6 +385,11 @@ export default function DashboardPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Email Verification Component */}
+      {user && !user.isEmailVerified && (
+        <EmailVerification user={user} onUpdate={handleUserUpdate} />
+      )}
     </div>
   );
 }

@@ -54,15 +54,52 @@ export async function PATCH(request, { params }) {
       );
     }
 
+    const {
+      name,
+      quantity,
+      unit,
+      quantityNumber,
+      customUnit,
+      status,
+      priority,
+      tags,
+      category,
+      notes,
+      dueAt,
+      assignedToId,
+      priceCents,
+      currency,
+      storeName,
+      storeAisle,
+      metadata,
+      done,
+    } = validation.data;
+
     const updateData = {};
-    if (validation.data.name !== undefined)
-      updateData.name = validation.data.name;
-    if (validation.data.quantity !== undefined)
-      updateData.quantity = validation.data.quantity;
-    if (validation.data.notes !== undefined)
-      updateData.notes = validation.data.notes;
-    if (validation.data.done !== undefined)
-      updateData.done = validation.data.done;
+
+    // Handle legacy done field mapping to status
+    if (done !== undefined) {
+      updateData.status = done ? "PURCHASED" : "TODO";
+    }
+
+    // Add new fields if provided
+    if (name !== undefined) updateData.name = name;
+    if (quantity !== undefined) updateData.quantity = quantity;
+    if (unit !== undefined) updateData.unit = unit;
+    if (quantityNumber !== undefined) updateData.quantityNumber = quantityNumber;
+    if (customUnit !== undefined) updateData.customUnit = customUnit;
+    if (status !== undefined) updateData.status = status;
+    if (priority !== undefined) updateData.priority = priority;
+    if (tags !== undefined) updateData.tags = tags;
+    if (category !== undefined) updateData.category = category;
+    if (notes !== undefined) updateData.notes = notes;
+    if (dueAt !== undefined) updateData.dueAt = dueAt;
+    if (assignedToId !== undefined) updateData.assignedToId = assignedToId;
+    if (priceCents !== undefined) updateData.priceCents = priceCents;
+    if (currency !== undefined) updateData.currency = currency;
+    if (storeName !== undefined) updateData.storeName = storeName;
+    if (storeAisle !== undefined) updateData.storeAisle = storeAisle;
+    if (metadata !== undefined) updateData.metadata = metadata;
 
     // Update item
     const item = await prisma.item.update({
@@ -74,6 +111,26 @@ export async function PATCH(request, { params }) {
             id: true,
             username: true,
             avatarUrl: true,
+          },
+        },
+        assignedTo: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+        purchasedBy: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+        _count: {
+          select: {
+            subItems: true,
+            attachments: true,
           },
         },
       },

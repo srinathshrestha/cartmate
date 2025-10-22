@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Eye, EyeOff } from "lucide-react";
 
 // Component that uses useSearchParams - needs to be wrapped in Suspense
 function RegisterForm() {
@@ -28,12 +29,39 @@ function RegisterForm() {
     return null;
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
+
+  // Password strength calculation function
+  const calculatePasswordStrength = (password) => {
+    let strength = 0;
+    if (password.length >= 8) strength += 1;
+    if (password.match(/[a-z]/)) strength += 1;
+    if (password.match(/[A-Z]/)) strength += 1;
+    if (password.match(/[0-9]/)) strength += 1;
+    if (password.match(/[^A-Za-z0-9]/)) strength += 1;
+    return strength;
+  };
+
+  // Get password strength info
+  const getPasswordStrengthInfo = (password) => {
+    const strength = calculatePasswordStrength(password);
+    const strengthLevels = {
+      0: { label: "", color: "", bgColor: "" },
+      1: { label: "Very Weak", color: "text-red-500", bgColor: "bg-red-500" },
+      2: { label: "Weak", color: "text-red-400", bgColor: "bg-red-400" },
+      3: { label: "Fair", color: "text-yellow-500", bgColor: "bg-yellow-500" },
+      4: { label: "Good", color: "text-blue-500", bgColor: "bg-blue-500" },
+      5: { label: "Strong", color: "text-green-500", bgColor: "bg-green-500" }
+    };
+    return strengthLevels[strength];
+  };
 
   // Handle input changes
   const handleChange = (e) => {
@@ -138,45 +166,102 @@ function RegisterForm() {
             {/* Password field */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                disabled={isLoading}
-              />
-              <p className="text-xs text-muted-foreground">
-                Minimum 8 characters with letters and numbers
-              </p>
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  disabled={isLoading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+
+              {/* Password strength indicator */}
+              {formData.password && (
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <div className="flex-1 bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthInfo(formData.password).bgColor
+                          }`}
+                        style={{
+                          width: `${(calculatePasswordStrength(formData.password) / 5) * 100}%`
+                        }}
+                      ></div>
+                    </div>
+                    <span className={`text-xs font-medium ${getPasswordStrengthInfo(formData.password).color
+                      }`}>
+                      {getPasswordStrengthInfo(formData.password).label}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Minimum 8 characters with letters and numbers
+                  </p>
+                </div>
+              )}
+
+              {!formData.password && (
+                <p className="text-xs text-muted-foreground">
+                  Minimum 8 characters with letters and numbers
+                </p>
+              )}
             </div>
 
             {/* Confirm password field */}
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  disabled={isLoading}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-4">
             {/* Register button */}
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full mt-6" disabled={isLoading}>
               {isLoading ? "Creating account..." : "Register"}
             </Button>
 
             {/* Link to login */}
-            <p className="text-sm text-center text-muted-foreground">
+            <p className="text-sm text-center text-muted-foreground mt-6">
               Already have an account?{" "}
               <Link
                 href={

@@ -34,8 +34,33 @@ export async function GET(request, { params }) {
             avatarUrl: true,
           },
         },
+        assignedTo: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+        purchasedBy: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+        _count: {
+          select: {
+            subItems: true,
+            attachments: true,
+          },
+        },
       },
-      orderBy: [{ done: "asc" }, { createdAt: "desc" }],
+      orderBy: [
+        // Order by status (PURCHASED first), then by priority (URGENT first), then by creation date
+        { status: "asc" },
+        { priority: "desc" },
+        { createdAt: "desc" },
+      ],
     });
 
     return NextResponse.json({ items });
@@ -83,7 +108,25 @@ export async function POST(request, { params }) {
       );
     }
 
-    const { name, quantity, notes } = validation.data;
+    const {
+      name,
+      quantity,
+      unit,
+      quantityNumber,
+      customUnit,
+      status,
+      priority,
+      tags,
+      category,
+      notes,
+      dueAt,
+      assignedToId,
+      priceCents,
+      currency,
+      storeName,
+      storeAisle,
+      metadata,
+    } = validation.data;
 
     // Create item
     const item = await prisma.item.create({
@@ -91,7 +134,21 @@ export async function POST(request, { params }) {
         listId,
         name,
         quantity: quantity || "1",
+        unit: unit || "PIECE",
+        quantityNumber,
+        customUnit,
+        status: status || "TODO",
+        priority: priority || "MEDIUM",
+        tags: tags || [],
+        category,
         notes,
+        dueAt,
+        assignedToId,
+        priceCents,
+        currency,
+        storeName,
+        storeAisle,
+        metadata,
         createdById: user.id,
       },
       include: {
@@ -100,6 +157,26 @@ export async function POST(request, { params }) {
             id: true,
             username: true,
             avatarUrl: true,
+          },
+        },
+        assignedTo: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+        purchasedBy: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+        _count: {
+          select: {
+            subItems: true,
+            attachments: true,
           },
         },
       },

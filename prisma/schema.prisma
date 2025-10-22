@@ -30,6 +30,8 @@ model User {
   passwordHash    String       @map("password_hash")
   avatarUrl       String?      @map("avatar_url")
   isEmailVerified Boolean      @default(false) @map("is_email_verified")
+  pendingEmail    String?      @unique @map("pending_email")
+  emailVerificationSentAt DateTime? @map("email_verification_sent_at")
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
   
@@ -37,9 +39,12 @@ model User {
   lists        List[]       @relation("ListCreator")
   memberships  ListMember[]
   items        Item[]       @relation("ItemCreator")
+  assignedItems Item[]      @relation("ItemAssignee")
+  purchasedItems Item[]     @relation("ItemPurchasedBy")
   messages     Message[]    @relation("MessageSender")
   invites      Invite[]     @relation("InviteCreator")
   otpCodes     OtpCode[]
+  attachments  ItemAttachment[] @relation("ItemUploader")
 
   @@map("users")
 }
@@ -82,6 +87,43 @@ model ListMember {
   @@map("list_members")
 }
 
+// New enums to support richer item semantics
+enum ItemStatus {
+  TODO
+  IN_PROGRESS
+  PURCHASED
+  CANCELLED
+}
+
+enum ItemPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum Unit {
+  PIECE
+  PACK
+  DOZEN
+  G
+  KG
+  OZ
+  ML
+  L
+  CUSTOM
+}
+
+enum ItemCategory {
+  DAIRY
+  GRAINS
+  PRODUCE
+  MEAT
+  BEVERAGE
+  HOUSEHOLD
+  OTHER
+}
+
 // Item represents a single shopping list item.
 // Tracks who created it and when it was last updated.
 model Item {
@@ -91,6 +133,24 @@ model Item {
   quantity    String   @default("1")
   notes       String?
   done        Boolean  @default(false)
+  // New fields
+  status      ItemStatus   @default(TODO)
+  priority    ItemPriority @default(MEDIUM)
+  quantityNumber Decimal?  @db.Decimal(10, 2)
+  unit        Unit         @default(PIECE)
+  customUnit  String?
+  tags        String[]     @default([])
+  category    ItemCategory?
+  dueAt       DateTime?
+  assignedToId String?     @map("assigned_to_id")
+  priceCents  Int?
+  currency    String?      // ISO-4217 code, e.g., USD
+  purchasedPriceCents Int?  @map("purchased_price_cents")
+  purchasedAt DateTime?     @map("purchased_at")
+  purchasedById String?     @map("purchased_by_id")
+  storeName   String?
+  storeAisle  String?
+  metadata    Json?
   createdById String   @map("created_by")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -98,10 +158,51 @@ model Item {
   // Relations
   list        List     @relation(fields: [listId], references: [id], onDelete: Cascade)
   createdBy   User     @relation("ItemCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  assignedTo  User?    @relation("ItemAssignee", fields: [assignedToId], references: [id])
+  purchasedBy User?    @relation("ItemPurchasedBy", fields: [purchasedById], references: [id])
+  subItems    SubItem[]
+  attachments ItemAttachment[]
 
   @@index([listId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueAt])
+  @@index([assignedToId])
   @@index([updatedAt])
   @@map("items")
+}
+
+// Sub-items allow complex items like "Snack Pack" → list of flavors
+model SubItem {
+  id        String   @id @default(cuid())
+  itemId    String   @map("item_id")
+  name      String
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@map("sub_items")
+}
+
+// Attachments can store links or images (e.g., product photos, receipts)
+model ItemAttachment {
+  id           String   @id @default(cuid())
+  itemId       String   @map("item_id")
+  url          String
+  type         String   // mime type or logical type (photo, link)
+  uploadedById String   @map("uploaded_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  item         Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation("ItemUploader", fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([uploadedById])
+  @@map("item_attachments")
 }
 
 // Message stores chat messages within a list.

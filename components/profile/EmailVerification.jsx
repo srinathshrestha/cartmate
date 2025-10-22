@@ -28,10 +28,13 @@ export default function EmailVerification({ user, onUpdate }) {
     const handleSendOTP = async () => {
         setIsSendingOTP(true);
         try {
+            // Use pendingEmail if available, otherwise use current email
+            const emailToVerify = user.pendingEmail || user.email;
+
             const response = await fetch("/api/auth/send-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: user.email, userId: user.id }),
+                body: JSON.stringify({ email: emailToVerify, userId: user.id }),
             });
 
             if (!response.ok) {
@@ -69,7 +72,13 @@ export default function EmailVerification({ user, onUpdate }) {
                 return;
             }
 
-            onUpdate({ ...user, isEmailVerified: true });
+            onUpdate({
+                ...user,
+                isEmailVerified: true,
+                email: user.pendingEmail || user.email,
+                pendingEmail: null,
+                emailVerificationSentAt: null
+            });
             setShowOTPDialog(false);
             setOtpCode("");
             toast.success("Email verified successfully!");

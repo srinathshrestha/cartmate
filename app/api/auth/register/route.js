@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { setTokenCookie, signToken } from "@/lib/auth/jwt";
 import { hashPassword } from "@/lib/auth/password";
 import prisma from "@/lib/db";
-import { generateOTP, sendOTPEmail } from "@/lib/mailgun";
+import { generateOTP, sendOTPEmail, sendWelcomeEmail } from "@/lib/mailgun";
 import { registerSchema } from "@/lib/validations/auth";
 
 /**
@@ -92,6 +92,14 @@ export async function POST(request) {
       await sendOTPEmail(user.email, user.username, otp);
     } catch (emailError) {
       console.error("Failed to send OTP email:", emailError);
+      // Continue with registration even if email fails
+    }
+
+    // Send welcome email (don't fail registration if this fails)
+    try {
+      await sendWelcomeEmail(user.email, user.username);
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError);
       // Continue with registration even if email fails
     }
 

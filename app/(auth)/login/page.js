@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Eye, EyeOff } from "lucide-react";
 
 // Component that uses useSearchParams - needs to be wrapped in Suspense
 function LoginForm() {
@@ -28,6 +29,7 @@ function LoginForm() {
         return null;
     });
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
         email: "",
         password: "",
@@ -111,27 +113,42 @@ function LoginForm() {
                                     Forgot password?
                                 </Link>
                             </div>
-                            <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                placeholder="••••••••"
-                                value={formData.password}
-                                onChange={handleChange}
-                                required
-                                disabled={isLoading}
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="••••••••"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    required
+                                    disabled={isLoading}
+                                    className="pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                    disabled={isLoading}
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-4 w-4" />
+                                    ) : (
+                                        <Eye className="h-4 w-4" />
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </CardContent>
 
                     <CardFooter className="flex flex-col space-y-4">
                         {/* Login button */}
-                        <Button type="submit" className="w-full" disabled={isLoading}>
+                        <Button type="submit" className="w-full mt-6" disabled={isLoading}>
                             {isLoading ? "Logging in..." : "Login"}
                         </Button>
 
                         {/* Link to register */}
-                        <p className="text-sm text-center text-muted-foreground">
+                        <p className="text-sm text-center text-muted-foreground mt-6">
                             Don't have an account?{" "}
                             <Link
                                 href={

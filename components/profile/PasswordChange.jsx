@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
  * Handles password change functionality.
  * Keeps file size under 150 lines by focusing on password logic.
  */
-export default function PasswordChange() {
+export default function PasswordChange({ disabled = false }) {
     const [isSaving, setIsSaving] = useState(false);
     const [passwordData, setPasswordData] = useState({
         currentPassword: "",
@@ -96,7 +96,7 @@ export default function PasswordChange() {
                                 })
                             }
                             required
-                            disabled={isSaving}
+                            disabled={isSaving || disabled}
                         />
                     </div>
 
@@ -114,7 +114,7 @@ export default function PasswordChange() {
                                 })
                             }
                             required
-                            disabled={isSaving}
+                            disabled={isSaving || disabled}
                         />
                         <p className="text-xs text-muted-foreground">
                             Minimum 8 characters with letters and numbers
@@ -135,11 +135,11 @@ export default function PasswordChange() {
                                 })
                             }
                             required
-                            disabled={isSaving}
+                            disabled={isSaving || disabled}
                         />
                     </div>
 
-                    <Button type="submit" disabled={isSaving}>
+                    <Button type="submit" disabled={isSaving || disabled}>
                         {isSaving ? "Changing..." : "Change Password"}
                     </Button>
                 </form>

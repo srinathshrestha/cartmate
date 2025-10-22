@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/helpers";
 import { verifyPassword } from "@/lib/auth/password";
 import prisma from "@/lib/db";
 import { updateProfileSchema } from "@/lib/validations/auth";
+import { generateOTP, sendOTPEmail } from "@/lib/mailgun";
 
 /**
  * PATCH /api/profile
@@ -29,43 +30,81 @@ export async function PATCH(request) {
     }
 
     const { username, email, avatarUrl } = body;
+    const isEmailChange = email && email !== user.email;
 
-    // Check if username or email is already taken by another user
-    if (username || email) {
+    // Check if username is already taken by another user
+    if (username) {
       const existingUser = await prisma.user.findFirst({
         where: {
           AND: [
             { id: { not: user.id } },
-            {
-              OR: [username ? { username } : {}, email ? { email } : {}].filter(
-                Boolean,
-              ),
-            },
+            { username },
           ],
         },
       });
 
       if (existingUser) {
-        if (existingUser.username === username) {
-          return NextResponse.json(
-            { error: "Username already taken" },
-            { status: 409 },
-          );
-        }
-        if (existingUser.email === email) {
-          return NextResponse.json(
-            { error: "Email already in use" },
-            { status: 409 },
-          );
-        }
+        return NextResponse.json(
+          { error: "Username already taken" },
+          { status: 409 },
+        );
       }
     }
 
-    // Update user
+    // Check if email is already in use by another user (only if email is being changed)
+    if (email && email !== user.email) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          AND: [
+            { id: { not: user.id } },
+            { email },
+          ],
+        },
+      });
+
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "Email already in use" },
+          { status: 409 },
+        );
+      }
+    }
+
+    // Prepare update data
     const updateData = {};
     if (username) updateData.username = username;
-    if (email) updateData.email = email;
     if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+
+    // Handle email change with verification
+    if (isEmailChange) {
+      // Set email as pending and mark as unverified
+      updateData.pendingEmail = email;
+      updateData.isEmailVerified = false;
+      updateData.emailVerificationSentAt = new Date();
+
+      // Generate and save OTP for new email
+      const otp = generateOTP();
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+      await prisma.otpCode.create({
+        data: {
+          userId: user.id,
+          email: email,
+          code: otp,
+          expiresAt,
+          used: false,
+        },
+      });
+
+      // Send verification email to new address
+      try {
+        await sendOTPEmail(email, username || user.username, otp);
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        // Continue with update even if email fails - user can resend
+      }
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
@@ -75,15 +114,20 @@ export async function PATCH(request) {
         username: true,
         email: true,
         avatarUrl: true,
-          isEmailVerified: true,
+        isEmailVerified: true,
+        pendingEmail: true,
+        emailVerificationSentAt: true,
         createdAt: true,
         updatedAt: true,
       },
     });
 
     return NextResponse.json({
-      message: "Profile updated successfully",
+      message: isEmailChange
+        ? "Profile updated. Please verify your new email address."
+        : "Profile updated successfully",
       user: updatedUser,
+      requiresVerification: isEmailChange,
     });
   } catch (error) {
     console.error("Update profile error:", error);

@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label";
  * Handles account deletion with password confirmation.
  * Keeps file size under 150 lines by focusing on delete logic.
  */
-export default function DeleteAccount() {
+export default function DeleteAccount({ disabled = false }) {
     const router = useRouter();
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [deleteConfirmPassword, setDeleteConfirmPassword] = useState("");
@@ -75,6 +75,7 @@ export default function DeleteAccount() {
                     <Button
                         variant="destructive"
                         onClick={() => setShowDeleteDialog(true)}
+                        disabled={disabled}
                     >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete Account
@@ -105,6 +106,7 @@ export default function DeleteAccount() {
                                 placeholder="Enter your password"
                                 className="mt-2"
                                 required
+                                disabled={disabled}
                                 autoFocus
                             />
                         </div>
@@ -119,7 +121,7 @@ export default function DeleteAccount() {
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" variant="destructive" disabled={isDeleting}>
+                            <Button type="submit" variant="destructive" disabled={isDeleting || disabled}>
                                 {isDeleting ? "Deleting..." : "Delete Account"}
                             </Button>
                         </DialogFooter>
