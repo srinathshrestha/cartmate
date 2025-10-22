@@ -33,7 +33,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import EmailVerification from "@/components/profile/EmailVerification";
 
 /**
  * Dashboard page component.
@@ -50,6 +49,12 @@ export default function DashboardPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newListName, setNewListName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+
+  // Email verification state
+  const [showOTPDialog, setShowOTPDialog] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [isSendingOTP, setIsSendingOTP] = useState(false);
+  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
 
   // Fetch user and lists on mount
   useEffect(() => {
@@ -139,6 +144,63 @@ export default function DashboardPage() {
   // Handle user update from verification
   const handleUserUpdate = (updatedUser) => {
     setUser(updatedUser);
+  };
+
+  // Send OTP for email verification
+  const handleSendOTP = async () => {
+    setIsSendingOTP(true);
+    try {
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, userId: user.id }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        toast.error(data.error || "Failed to send verification code");
+        return;
+      }
+
+      setShowOTPDialog(true);
+      toast.success("Verification code sent to your email!");
+    } catch (error) {
+      console.error("Send OTP error:", error);
+      toast.error("Failed to send verification code");
+    } finally {
+      setIsSendingOTP(false);
+    }
+  };
+
+  // Verify OTP
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    setIsVerifyingOTP(true);
+
+    try {
+      const response = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, code: otpCode }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Invalid verification code");
+        return;
+      }
+
+      setUser({ ...user, isEmailVerified: true });
+      setShowOTPDialog(false);
+      setOtpCode("");
+      toast.success("Email verified successfully!");
+    } catch (error) {
+      console.error("Verify OTP error:", error);
+      toast.error("Verification failed");
+    } finally {
+      setIsVerifyingOTP(false);
+    }
   };
 
   // Format date for display
@@ -241,6 +303,14 @@ export default function DashboardPage() {
                   <p className="text-sm text-orange-800 dark:text-orange-200 mt-1">
                     Please verify your email address to create lists and access all features.
                   </p>
+                  <Button
+                    size="sm"
+                    onClick={handleSendOTP}
+                    disabled={isSendingOTP}
+                    className="mt-3"
+                  >
+                    {isSendingOTP ? "Sending..." : "Verify Email"}
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -386,10 +456,46 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Email Verification Component */}
-      {user && !user.isEmailVerified && (
-        <EmailVerification user={user} onUpdate={handleUserUpdate} />
-      )}
+      {/* OTP Verification Dialog */}
+      <Dialog open={showOTPDialog} onOpenChange={setShowOTPDialog}>
+        <DialogContent>
+          <form onSubmit={handleVerifyOTP}>
+            <DialogHeader>
+              <DialogTitle>Verify Your Email</DialogTitle>
+              <DialogDescription>
+                Enter the 6-digit code sent to {user?.email}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Input
+                placeholder="000000"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                maxLength={6}
+                className="text-center text-2xl tracking-widest"
+                required
+                autoFocus
+              />
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSendOTP}
+                disabled={isSendingOTP}
+              >
+                {isSendingOTP ? "Sending..." : "Resend Code"}
+              </Button>
+              <Button
+                type="submit"
+                disabled={isVerifyingOTP || otpCode.length !== 6}
+              >
+                {isVerifyingOTP ? "Verifying..." : "Verify"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
